@@ -1,0 +1,20 @@
+{
+	"name": "dbh",
+	"version": "0.4.1",
+	"description": "DBHandler for Discord.JS bots and websites.",
+	"main": "DBH.js",
+	"scripts": {},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/happy-mama/DBH.git"
+	},
+	"author": "happy-mama",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/happy-mama/DBH/issues"
+	},
+	"homepage": "https://github.com/happy-mama/DBH#readme",
+	"dependencies": {
+		"DBH": "file:../DBH.js"
+	}
+}
