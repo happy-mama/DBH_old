@@ -4,7 +4,7 @@
 ||_| | _ <   |  _  |/ _ \| . ' | |_| | |__| ___|    /
 |___/|___/   |_| |_|_/ \_|_|\__|____/|____|____|_|\_\
 
-MongoDB + mongoose  :  0.4.2
+MongoDB + mongoose  :  0.4.3
 */
 
 const JWT = require("jsonwebtoken");
@@ -14,7 +14,7 @@ class DBH {
 	/**
 	 * Create an instance of DataBase Handler
 	 * @author happy-mama
-	 * @version 0.4.1a
+	 * @version 0.4.3
 	 */
 	constructor() {
 		this.cache = {
@@ -34,8 +34,6 @@ class DBH {
 		this.defaultPrefix = null;
 		this.JWTS = null;
 	}
-
-	// @param {{user: string, password: string, host: string, database: string}} config
 
 	/**
 	 * Initiates a connection to MongoDB
@@ -251,7 +249,6 @@ class DBH {
 
 	// WEB AUTH
 
-	// web = {
 	/**
 	 * Get `JWT` Object from `JWT` string
 	 * @param {object} opts
@@ -424,7 +421,7 @@ class DBH {
 
 	/**
 	 * Saves and clearing all DBH cache
-	 * @returns {void}
+	 * @returns {string} `Success`
 	 */
 	cacheSave() {
 		this.cache.users.forEach(user => { user.save(); });
@@ -433,6 +430,10 @@ class DBH {
 		this.cache.guilds.forEach(guild => { guild.save(); });
 		this.cache.guilds.clear();
 
+		this.cache.web.users.forEach(WUser => { WUser.save() });
+		this.cache.web.users.clear();
+
+		this.cache.web.jwt.clear();
 		this.cache.redirectUrls.clear();
 		return "Success";
 	}
