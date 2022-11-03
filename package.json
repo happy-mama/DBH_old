@@ -16,6 +16,7 @@
 	"homepage": "https://github.com/happy-mama/DBH#readme",
 	"dependencies": {
 		"DBH": "file:../DBH.js",
+		"jsonwebtoken": "^8.5.1",
 		"mongodb": "^4.9.0",
 		"mongoose": "^6.5.4"
 	}

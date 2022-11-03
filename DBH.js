@@ -4,7 +4,7 @@
 ||_| | _ <   |  _  |/ _ \| . ' | |_| | |__| ___|    /
 |___/|___/   |_| |_|_/ \_|_|\__|____/|____|____|_|\_\
 
-MongoDB + mongoose  :  0.4.1a
+MongoDB + mongoose  :  0.4.2
 */
 
 const JWT = require("jsonwebtoken");
@@ -28,7 +28,7 @@ class DBH {
 				notes: new Map()
 			}
 		},
-		this.schemas = null;
+			this.schemas = null;
 		this.properties = null;
 		this.adminTools = null;
 		this.defaultPrefix = null;
@@ -219,7 +219,7 @@ class DBH {
 		return new Promise((result, reject) => {
 			let RUrl = this.cache.redirectUrls.get(id);
 			if (RUrl) { result(RUrl); }
-			this.schemas.redirectUrlsModel.findOne({ id:id }).then(redirectUrl => {
+			this.schemas.redirectUrlsModel.findOne({ id: id }).then(redirectUrl => {
 				if (redirectUrl) {
 					this.cache.redirectUrls.set(id, redirectUrl);
 					result(redirectUrl);
@@ -237,9 +237,9 @@ class DBH {
 	 * @param {string} opts.mesasge 
 	 * @returns {Promise<object>} `RedirectUrl` Object
 	 */
-	createRedirectUrl({ id, mesasge } = {id: "", mesasge: ""}) {
+	createRedirectUrl({ id, mesasge } = { id: "", mesasge: "" }) {
 		return new Promise((result) => {
-			let RUrl = new this.schemas.redirectUrlsModel ({
+			let RUrl = new this.schemas.redirectUrlsModel({
 				id: id,
 				message: mesasge,
 				redirectUrls: 0
@@ -251,98 +251,154 @@ class DBH {
 
 	// WEB AUTH
 
-	web = {
-		/**
-		 * Get `JWT` Object from `JWT` string
-		 * @param {object} opts
-		 * @param {string} opts.jwt 
-		 * @returns {Promise<object>} `JWT` Object
-		 */
-		JWTVerify({jwt} = {jwt: ""}) {
-			return new Promise((result, rejeсt) => {
-				let decoded = this.cache.web.jwt.get(jwt);
-				if (decoded) {
+	// web = {
+	/**
+	 * Get `JWT` Object from `JWT` string
+	 * @param {object} opts
+	 * @param {string} opts.jwt 
+	 * @returns {Promise<object>} `JWT` Object
+	 */
+	JWTVerify({ jwt } = { jwt: "" }) {
+		return new Promise((result, rejeсt) => {
+			let decoded = this.cache.web.jwt.get(jwt);
+			if (decoded) {
+				result(decoded);
+			} else {
+				JWT.verify(jwt, this.JWTS, (err, decoded) => {
+					if (err) {
+						if (err.name = "TokenExpiredError") { rejeсt("EJWTEXPIRED") }
+						else { rejeсt(err.name); }
+					}
+					this.cache.web.jwt.set(jwt, decoded);
 					result(decoded);
+				})
+			}
+		});
+	};
+
+	/**
+	 * Create `JWT` string
+	 * @param {object} opts
+	 * @param {string} opts.login
+	 * @param {string} opts.password
+	 * @param {string} opts.email
+	 * @returns {Promise<string>} `JWT` String
+	 */
+	JWTCreate({ login, password, email } = { login: "", password: "", email: "" }) {
+		return new Promise((result) => {
+
+			console.log(login, password, email)
+
+			let coded = JWT.sign({
+				login: login,
+				password: password,
+				email: email
+			}, this.JWTS, {
+				expiresIn: 1000 * 60 * 60 * 24 * 7
+			});
+			this.cache.web.jwt.set(coded, { login: login, password: password, email: email });
+			result(coded);
+		})
+	};
+
+	/**
+	 * Get `User` from `DB` via `JWT` or `Auth` params
+	 * @param {object} opts 
+	 * @param {string | null} opts.jwt
+	 * @param {{login: string, password: string, email: string} | null} opts.auth
+	 * @returns {Promise<object>} `WUser` Object
+	 */
+	WgetUser({ jwt, auth } = { user: Object }) {
+		return new Promise((result, reject) => {
+			this.WcacheUser({jwt: jwt, auth: auth}).then(WUser => {
+				result(WUser);
+			}).catch(err => {
+				reject(err);
+			});
+		})
+	};
+	/**
+	 * Get `WUser` Object from `DBH Cache`
+	 * @param {object} opts
+	 * @param {string | null} opts.jwt
+	 * @param {{login: string, password: string, email: string} | null} opts.auth
+	 * @returns {Promise<object>} `WUser` Object
+	 */
+	WcacheUser({ jwt, auth } = { jwt: "", auth: "" }) {
+		return new Promise((result, reject) => {
+			if (jwt) { // get WUser via jwt
+				this.JWTVerify({jwt: jwt}).then(decoded => {
+					result(decoded);
+				}).catch(err => {
+					reject(err);
+				})
+			} else { // get WUser via auth
+				let WUser = this.cache.web.users.get(auth.login + ":" + auth.password);
+				if (!WUser) {
+					WUser = this.cache.web.users.get(auth.email + ":" + auth.password);
+				}
+				if (WUser) {
+					return result(WUser)
+				}
+				if (auth.login && auth.password) {
+					this.schemas.web.WUserModel.findOne({
+						login: auth.login,
+						password: auth.password
+					}).then(_WUser => {
+						if (!_WUser) { return reject("ENOWUSER") }
+						this.cache.web.users.set(_WUser.login + ":" + auth.password, _WUser)
+						result(_WUser)
+					})
 				} else {
-					JWT.verify(jwt, this.JWTS, (err, decoded) => {
-						if (err) {
-							if (err.name = "TokenExpiredError") { rejeсt("EJWTEXPIRED") }
-							else { rejeсt(err.name); }
-						}
-						this.cache.web.jwt.set(jwt, decoded);
-						result(decoded);
+					this.schemas.web.WUserModel.findOne({
+						password: auth.password,
+						email: auth.email
+					}).then(_WUser => {
+						if (!_WUser) { return reject("ENOWUSER") }
+						this.cache.web.users.set(_WUser.email + ":" + auth.password, _WUser)
+						result(_WUser)
 					})
 				}
-			});
-		},
+			}
+		});
+	};
 
-		/**
-		 * Create `JWT` string
-		 * @param {object} opts
-		 * @param {string} opts._id
-		 * @param {string} opts.login
-		 * @param {string} opts.password
-		 * @param {string} opts.email
-		 * @returns {Promise<string>} `JWT` String
-		 */
-		JWTCreate({_id, login, password, email} = {_id: "", login: "", password: "", email: ""}) {
-			return new Promise((result) => {
-				let coded = JWT.sign({
-					_id: _id,
-					log: login,
-					pas: password,
-					ema: email
-				}, this.JWTS, {
-					expiresIn: 1000 * 60 * 60 * 24 * 7
-				});
-				this.cache.web.jwt.set(coded, {_id: _id, log: login, pas: password, ema: email});
-				result(coded);
-			})
-		},
+	/**
+	 * Create `WUser` Object and Save to `DB`
+	 * @param {object} opts
+	 * @param {string} opts.email
+	 * @param {string} opts.login
+	 * @param {string} opts.password 
+	 * @returns {Promise<null>} `WUser` Object
+	 */
+	WcreateUser({ login, password, email } = { login: "", password: "", email: "" }) {
+		return new Promise((result, reject) => {
 
-		/**
-		 * Get `User` from `DB` via `JWT` or `Auth` params
-		 * @param {object} opts 
-		 * @param {string | null} opts.jwt
-		 * @param {{id: string, login: string, password: string, email: string} | null} opts.auth
-		 * @returns {Promise<object>} `User` Object
-		 */
-		getUser({jwt, auth} = {user: Object}) {
-			return new Promise((result, reject) => {
-				if (jwt) { // auth via JWT
-					this.JWTVerify({jwt: jwt}).then(decoded => {
-						this.schemas.web.WUserModel.findOne({
-							id: decoded.id,
-							login: decoded.log,
-							password: decoded.pas,
-							email: decoded.ema
-						})
-					}).catch(err => {
+			if (!password) {
+				return reject("ENOPASSWORD")
+			}
 
-					})
-				} else { // auth via login, password
-
+			this.WgetUser({
+				auth: {
+					login: login,
+					password: password,
+					email: email
 				}
-
-
-				this.web.cacheUser({mailORlogin: mailORlogin, password: password}).then(_user => {
-					
-				}).catch(e => {
-
-				});
+			}).then(() => {
+				reject("EPARAMSBUSY")
+			}).catch(err => {
+				let WUser = new this.schemas.web.WUserModel({
+					login: login,
+					password: password,
+					email: email
+				})
+				this.cache.web.users.set(email + ":" + password, WUser)
+				this.cache.web.users.set(login + ":" + password, WUser)
+				WUser.save()
+				result(WUser);
 			})
-		},
-		cacheUser({mailORlogin, password} = {mailORlogin: "", password: ""}) {
-			return new Promise((result, reject) => {
-				this.cache.web.users.get()
-			});
-		},
-		createUser({mail, login, password} = {mail: "", login: "", password: ""}) {
-			return new Promise((result, reject) => {
-
-			});
-		}
-	}
+		});
+	};
 
 	// cacheVoice(user, state) {
 	// 	return new Promise((result) => {

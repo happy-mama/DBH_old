@@ -1,10 +1,19 @@
+
+// DO NOT CHANGE ALREADY CREATED PARAMS, ONLY ADD NEW
+
 const mongoose = require("mongoose");
 // guildModel
 const guildSchema = new mongoose.Schema({
 	id: String,
 	name: String,
 	prefix: String,
-	private: Boolean
+	private: Boolean,
+	commands: {
+		debug: false,
+		games: false,
+		main: false,
+		nusic: false
+	}
 }, { versionKey: false });
 const guildModel = mongoose.model("guilds", guildSchema);
 //---
@@ -39,7 +48,7 @@ const redirectUrlsModel = mongoose.model("redirectUrls", redirectUrlsSchema);
 const WUserSchema = new mongoose.Schema({
 	login: String,
 	email: String,
-	Password: String
+	password: String
 }, { versionKey: false });
 //---
 // WebNotesModel
