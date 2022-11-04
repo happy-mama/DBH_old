@@ -4,7 +4,7 @@
 ||_| | _ <   |  _  |/ _ \| . ' | |_| | |__| ___|    /
 |___/|___/   |_| |_|_/ \_|_|\__|____/|____|____|_|\_\
 
-MongoDB + mongoose  :  0.4.3
+MongoDB + mongoose  :  0.4.4
 */
 
 const JWT = require("jsonwebtoken");
@@ -14,7 +14,7 @@ class DBH {
 	/**
 	 * Create an instance of DataBase Handler
 	 * @author happy-mama
-	 * @version 0.4.3
+	 * @version 0.4.4
 	 */
 	constructor() {
 		this.cache = {
@@ -371,28 +371,31 @@ class DBH {
 	WcreateUser({ login, password, email } = { login: "", password: "", email: "" }) {
 		return new Promise((result, reject) => {
 
-			if (!password) {
-				return reject("ENOPASSWORD")
+			if (!password || !login) {
+				return reject("ENOPASSORLOG")
 			}
 
-			this.WgetUser({
-				auth: {
-					login: login,
-					password: password,
-					email: email
+			this.schemas.web.WUserModel.findOne({
+				login: login,
+				email: email
+			}).then(WUser => {
+				if (WUser) {
+					return reject("EPARAMSBUSY");
 				}
-			}).then(() => {
-				reject("EPARAMSBUSY")
-			}).catch(err => {
-				let WUser = new this.schemas.web.WUserModel({
+				WUser = new this.schemas.web.WUserModel({
 					login: login,
 					password: password,
 					email: email
 				})
-				this.cache.web.users.set(email + ":" + password, WUser)
-				this.cache.web.users.set(login + ":" + password, WUser)
+				if (login) {
+					this.cache.web.users.set(login + ":" + password, WUser)
+				} else {
+					this.cache.web.users.set(email + ":" + password, WUser)
+				}
 				WUser.save()
 				result(WUser);
+			}).catch(err => {
+				reject(err)
 			})
 		});
 	};
